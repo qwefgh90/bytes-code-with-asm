@@ -10,9 +10,32 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class AsmFromSketch {
     public static void main(String[] args) throws IOException {
+        //What's the class name?
         System.out.print("Class name? ");
-        var scanner = new Scanner(System.in);
-        var className = scanner.next().trim();
+        var className = new Scanner(System.in).next().trim();
+
+        //Define class A in definedClass()
+        var byteCodes = defineClass(className);
+        Files.write(Paths.get(className + ".class"), byteCodes);
+
+        //Execute class A in Java
+        var process = new ProcessBuilder("java", className).start();
+
+        //Print messages which are printed from the process
+        try(BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = input.readLine()) != null) {
+                System.out.println(line);
+            }
+        }
+        try(BufferedReader input = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = input.readLine()) != null) {
+                System.out.println(line);
+            }
+        }
+    }
+    static byte[] defineClass(String className){
         //Define class A
         ClassWriter cw = new ClassWriter(0);
         cw.visit(49, ACC_PUBLIC + ACC_SUPER, className, null, "java/lang/Object", null);
@@ -23,22 +46,7 @@ public class AsmFromSketch {
         defineMethods(cw, className);
 
         cw.visitEnd();
-        Files.write(Paths.get(className + ".class"), cw.toByteArray());
-
-        //execute class A in Java
-        var p = new ProcessBuilder("java", className).start();
-        try(BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-            String line;
-            while ((line = input.readLine()) != null) {
-                System.out.println(line);
-            }
-        }
-        try(BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
-            String line;
-            while ((line = input.readLine()) != null) {
-                System.out.println(line);
-            }
-        }
+        return cw.toByteArray();
     }
     static void defineConstructor(ClassWriter cw){
         //Declare a constructor
@@ -72,7 +80,7 @@ public class AsmFromSketch {
         main.visitEnd();
     }
     static void defineMethods(ClassWriter cw, String className){
-        //myMethod1
+        //define myMethod1
         var mv1 = cw.visitMethod(ACC_PUBLIC, "myMethod1", "()V", null, null);
         mv1.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         mv1.visitLdcInsn("my method1 is called");
@@ -83,7 +91,7 @@ public class AsmFromSketch {
         mv1.visitMaxs(2, 1);
         mv1.visitEnd();
 
-        //myMethod2
+        //define myMethod2
         var mv2 = cw.visitMethod(ACC_PUBLIC, "myMethod2", "()V", null, null);
         mv2.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         mv2.visitLdcInsn("my method2 is called");
