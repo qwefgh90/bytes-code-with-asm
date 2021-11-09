@@ -18,6 +18,8 @@ public class AsmFromSketch {
         var byteCodes = defineClass(className);
         Files.write(Paths.get(className + ".class"), byteCodes);
 
+        System.out.println("Class " + className + " is generated successfully.\n");
+        System.out.println("Running \"java " + className + "\" now...\n");
         //Execute class A in Java
         var process = new ProcessBuilder("java", className).start();
 
